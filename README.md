@@ -29,24 +29,53 @@ import React, { useState } from "react";
 import NepaliCalendar from "@adhikarisaroj795/nepali-calendar-react";
 
 const App = () => {
-  const [date, setDate] = useState("");
+  const [dateObject, setDateObject] = useState(null);
 
-  const handleChange = (newDate) => {
-    setDate(newDate);
-    console.log("Selected date:", newDate);
+  const handleChange = (newDateObject) => {
+    setDateObject(newDateObject);
+    console.log("Selected date:", newDateObject);
   };
 
   return (
     <div>
       <h2>Select a Date</h2>
       <NepaliCalendar color="green" language="nepali" onChange={handleChange} />
-      {date && <p>You selected: {date}</p>}
+      {dateObject && (
+        <div>
+          <p>Bikram Sambat: {dateObject.bs}</p>
+          <p>Gregorian Date: {dateObject.ad}</p>
+          <p>
+            BS Object: Year {dateObject.bsDate.year}, Month{" "}
+            {dateObject.bsDate.month + 1}, Day {dateObject.bsDate.day}
+          </p>
+          <p>AD Date Object: {dateObject.adDate.toDateString()}</p>
+        </div>
+      )}
     </div>
   );
 };
 
 export default App;
 ```
+
+### Date Object Structure
+
+The `onChange` callback receives a comprehensive date object with the following structure:
+
+```javascript
+{
+  bs: "2082-04-20",                    // Bikram Sambat date string (YYYY-MM-DD)
+  ad: "2025-08-05",                    // Gregorian date string (YYYY-MM-DD)
+  bsDate: {                            // Bikram Sambat date object
+    year: 2082,
+    month: 3,                          // 0-indexed (3 = 4th month)
+    day: 20
+  },
+  adDate: Date                         // JavaScript Date object for Gregorian date
+}
+```
+
+**Note**: The `month` in `bsDate` is 0-indexed (0 = first month, 11 = twelfth month), similar to JavaScript Date objects.
 
 ## API Reference
 
