@@ -1,6 +1,6 @@
 {
   "name": "@adhikarisaroj795/nepali-calendar-react",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A comprehensive Nepali calendar component for React applications",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -66,6 +66,6 @@
   "homepage": "https://github.com/adhikarisaroj795/nepali-calender-react#readme",
   "dependencies": {
     "@babel/runtime": "^7.28.2",
-     "prop-types": "^15.8.1"
+    "prop-types": "^15.8.1"
   }
 }
