@@ -12,6 +12,28 @@ test("loads without a browser (server-side import)", () => {
   assert.strictEqual(typeof lib.default, "function");
 });
 
+test("the calendar component renders", () => {
+  const React = require("react");
+  const { renderToString } = require("react-dom/server");
+
+  const english = renderToString(
+    React.createElement(lib.default, {
+      language: "english",
+      value: "2083-07-28",
+    }),
+  );
+  assert.match(english, /nepali-calendar-container/);
+  assert.match(english, /value="2083-07-28"/);
+
+  const nepali = renderToString(
+    React.createElement(lib.default, {
+      language: "nepali",
+      value: "2083-07-28",
+    }),
+  );
+  assert.match(nepali, /value="२०८३-०७-२८"/);
+});
+
 test("known date pairs", () => {
   const pairs = [
     ["2000-01-01", "1943-04-14"],
