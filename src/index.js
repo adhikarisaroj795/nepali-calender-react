@@ -1,21 +1,49 @@
 import NepaliCalendar from "./components/NepaliCalendar";
-import { toNepaliNumber, toNepaliDateString } from "./utils/numberUtils";
 import {
+  adToBs,
+  adToBsDetails,
+  bsToAd,
+  bsToAdDate,
+  bsToAdDetails,
+  formatBs,
+  getBsYearRange,
+  getDaysInBsMonth,
+  isValidBsDate,
+  todayBs,
+} from "./utils/convert";
+import {
+  NepaliDate,
   convertADtoBS,
   convertBStoAD,
-  convertJStoBS,
   convertBStoJS,
+  convertJStoBS,
   dateConverter,
 } from "./utils/dateUtils";
+import { toNepaliDateString, toNepaliNumber } from "./utils/numberUtils";
 
 export default NepaliCalendar;
 
 export {
-  toNepaliNumber,
-  toNepaliDateString,
+  NepaliCalendar,
+  NepaliDate,
+  // simple conversion API
+  adToBs,
+  adToBsDetails,
+  bsToAd,
+  bsToAdDate,
+  bsToAdDetails,
+  // older names (still supported)
   convertADtoBS,
   convertBStoAD,
-  convertJStoBS,
   convertBStoJS,
+  convertJStoBS,
   dateConverter,
+  formatBs,
+  getBsYearRange,
+  getDaysInBsMonth,
+  isValidBsDate,
+  toNepaliDateString,
+  // number helpers
+  toNepaliNumber,
+  todayBs,
 };

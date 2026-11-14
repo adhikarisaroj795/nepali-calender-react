@@ -1,6 +1,7 @@
-*,
-*::before,
-*::after {
+.nepali-calendar-container,
+.nepali-calendar-container *,
+.nepali-calendar-container *::before,
+.nepali-calendar-container *::after {
   box-sizing: border-box;
 }
 
@@ -207,6 +208,12 @@
   background: none;
 }
 
+/* Blank cells before the first day of the month */
+.nepali-calendar-day.empty {
+  cursor: default;
+  visibility: hidden;
+}
+
 /* Calendar Footer */
 .nepali-calendar-footer {
   display: flex;
@@ -314,10 +321,4 @@
   /* Firefox 18- */
   color: var(--placeholder-color);
   opacity: 1;
-}
-
-.nepali-calendar-input ::placeholder {
-  font-weight: bold;
-  opacity: 0.5;
-  color: red;
 }

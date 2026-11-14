@@ -1,7 +1,5 @@
 const path = require("path");
-const MiniCssExtractPlugin = require("mini-css-extract-plugin");
-
-const isProduction = process.env.NODE_ENV === "production";
+const webpack = require("webpack");
 
 module.exports = {
   entry: "./src/index.js",
@@ -33,29 +31,27 @@ module.exports = {
         },
       },
       {
+        // The CSS is bundled as a plain string and added to the page by
+        // src/utils/injectStyles.js (only in the browser).
         test: /\.css$/,
         use: [
-          isProduction ? MiniCssExtractPlugin.loader : "style-loader",
           {
             loader: "css-loader",
             options: {
-              importLoaders: 1,
-              modules: false,
+              exportType: "string",
             },
           },
         ],
       },
     ],
   },
-  plugins: isProduction
-    ? [
-        new MiniCssExtractPlugin({
-          filename: "styles/nepalicalender.css",
-          chunkFilename: "[id].css",
-        }),
-      ]
-    : [],
-  optimization: {
-    minimize: isProduction,
-  },
+  plugins: [
+    // Lets the component work in the Next.js App Router without extra setup.
+    new webpack.BannerPlugin({
+      banner: '"use client";',
+      raw: true,
+      // add it after minification so it stays the first line of the file
+      stage: webpack.Compilation.PROCESS_ASSETS_STAGE_REPORT,
+    }),
+  ],
 };

@@ -1,26 +1,34 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
 import PropTypes from "prop-types";
-import "../../styles/nepalicalender.css";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import calendarData from "../data/NepaliDates.json";
 import { NepaliDate } from "../utils/dateUtils";
+import { injectStyles } from "../utils/injectStyles";
 import {
   toLocalizedNumber,
   toNepaliDateString,
   translations,
 } from "../utils/numberUtils";
 
+injectStyles();
+
+// Lighter shade of any CSS color (hex, rgb(), named colors like "green").
+const shade = (color, percent) =>
+  `color-mix(in srgb, ${color} ${percent}%, transparent)`;
+
 const NepaliCalendar = ({
   onChange,
   value,
   minDate,
   maxDate,
-  placeholder = "मिति छान्नुहोस्",
+  placeholder,
   disabled = false,
   size = "medium",
   color = "#4f46e5",
   language = "nepali",
   variant = "default",
+  id,
+  name = "nepaliDate",
 }) => {
   const today = useMemo(() => NepaliDate.fromGregorian(new Date()), []);
 
@@ -31,7 +39,7 @@ const NepaliCalendar = ({
     close: closeText,
     ariaLabels,
     monthNames,
-  } = translations[language];
+  } = translations[language] || translations.nepali;
 
   const initialDate = useMemo(() => {
     if (value) {
@@ -49,7 +57,7 @@ const NepaliCalendar = ({
   useEffect(() => {
     if (!value && onChange) {
       const initialBsDate = today.format("YYYY-MM-DD");
-      const initialAdDate = today.toGregorian().toISOString().split("T")[0];
+      const initialAdDate = today.toADString();
       onChange({
         bs: initialBsDate,
         ad: initialAdDate,
@@ -61,7 +69,7 @@ const NepaliCalendar = ({
 
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [visibleMonth, setVisibleMonth] = useState(
-    new NepaliDate(initialDate.getYear(), initialDate.getMonth(), 1)
+    new NepaliDate(initialDate.getYear(), initialDate.getMonth(), 1),
   );
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [popupPosition, setPopupPosition] = useState("below");
@@ -73,7 +81,7 @@ const NepaliCalendar = ({
       Object.keys(calendarData)
         .map(Number)
         .sort((a, b) => a - b),
-    []
+    [],
   );
 
   const currentMonthData = useMemo(
@@ -81,7 +89,7 @@ const NepaliCalendar = ({
       calendarData[visibleMonth.getYear().toString()]?.months[
         visibleMonth.getMonth()
       ],
-    [visibleMonth]
+    [visibleMonth],
   );
 
   const calendarDays = useMemo(() => {
@@ -90,7 +98,7 @@ const NepaliCalendar = ({
 
     for (let day = 1; day <= currentMonthData.days; day++) {
       days.push(
-        new NepaliDate(visibleMonth.getYear(), visibleMonth.getMonth(), day)
+        new NepaliDate(visibleMonth.getYear(), visibleMonth.getMonth(), day),
       );
     }
     return days;
@@ -134,18 +142,20 @@ const NepaliCalendar = ({
     };
   }, [minDate, maxDate]);
 
+  const openCalendar = () => {
+    if (!disabled) setIsCalendarOpen(true);
+  };
+
   const handleDateClick = (date) => {
     if (!date || isDateDisabled(date)) return;
-    const gregorianDate = date.toGregorian();
     setSelectedDate(date);
     setIsCalendarOpen(false);
-    // onChange?.(date.format("YYYY-MM-DD"));
     if (onChange) {
       onChange({
         bs: date.format("YYYY-MM-DD"),
-        ad: gregorianDate.toISOString().split("T")[0],
+        ad: date.toADString(),
         bsDate: date,
-        adDate: gregorianDate,
+        adDate: date.toGregorian(),
       });
     }
   };
@@ -158,11 +168,11 @@ const NepaliCalendar = ({
     if (currentMonth > 0) {
       setVisibleMonth(new NepaliDate(currentYear, currentMonth - 1, 1));
     } else {
-      const prevYear = availableYears.find((y) => y < currentYear);
-      if (prevYear !== undefined) {
-        const monthsInPrevYear =
-          calendarData[prevYear.toString()].months.length;
-        setVisibleMonth(new NepaliDate(prevYear, monthsInPrevYear - 1, 1));
+      const prevYearData = calendarData[String(currentYear - 1)];
+      if (prevYearData) {
+        setVisibleMonth(
+          new NepaliDate(currentYear - 1, prevYearData.months.length - 1, 1),
+        );
       }
     }
   };
@@ -176,11 +186,8 @@ const NepaliCalendar = ({
 
     if (currentMonth < monthsInCurrentYear - 1) {
       setVisibleMonth(new NepaliDate(currentYear, currentMonth + 1, 1));
-    } else {
-      const nextYear = availableYears.find((y) => y > currentYear);
-      if (nextYear !== undefined) {
-        setVisibleMonth(new NepaliDate(nextYear, 0, 1));
-      }
+    } else if (calendarData[String(currentYear + 1)]) {
+      setVisibleMonth(new NepaliDate(currentYear + 1, 0, 1));
     }
   };
 
@@ -188,12 +195,15 @@ const NepaliCalendar = ({
     const newYear = parseInt(e.target.value, 10);
     const currentMonth = Math.min(
       visibleMonth.getMonth(),
-      calendarData[newYear.toString()].months.length - 1
+      calendarData[newYear.toString()].months.length - 1,
     );
     setVisibleMonth(new NepaliDate(newYear, currentMonth, 1));
   };
 
+  // Close on outside click and on the Escape key.
   useEffect(() => {
+    if (!isCalendarOpen) return;
+
     const handleClickOutside = (event) => {
       if (
         calendarRef.current &&
@@ -205,20 +215,45 @@ const NepaliCalendar = ({
       }
     };
 
-    if (isCalendarOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () =>
-        document.removeEventListener("mousedown", handleClickOutside);
-    }
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setIsCalendarOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [isCalendarOpen]);
 
+  // Decide whether the popup opens below or above the input.
   useEffect(() => {
-    if (isCalendarOpen && inputRef.current) {
+    if (!isCalendarOpen) return;
+
+    const updatePosition = () => {
+      if (!inputRef.current) return;
       const inputRect = inputRef.current.getBoundingClientRect();
+      const popupHeight = calendarRef.current?.offsetHeight || 350;
       const spaceBelow = window.innerHeight - inputRect.bottom;
-      setPopupPosition(spaceBelow < 350 ? "above" : "below");
-    }
-  }, [isCalendarOpen]);
+      const spaceAbove = inputRect.top;
+
+      // Open above only when it doesn't fit below AND it really fits above.
+      const openAbove =
+        spaceBelow < popupHeight + 10 && spaceAbove >= popupHeight + 10;
+      setPopupPosition(openAbove ? "above" : "below");
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [isCalendarOpen, visibleMonth]);
 
   useEffect(() => {
     if (value) {
@@ -233,6 +268,11 @@ const NepaliCalendar = ({
     }
   }, [value]);
 
+  const todayKey = today.format("YYYY-MM-DD");
+  const selectedKey = selectedDate?.format("YYYY-MM-DD");
+  const visibleYear = visibleMonth.getYear();
+  const visibleMonthIndex = visibleMonth.getMonth();
+
   return (
     <div
       className={`nepali-calendar-container ${size} ${variant}`}
@@ -240,8 +280,8 @@ const NepaliCalendar = ({
         color
           ? {
               "--calendar-color": color,
-              "--calendar-color-light": `${color}20`,
-              "--calendar-color-dark": `${color}30`,
+              "--calendar-color-light": shade(color, 12),
+              "--calendar-color-dark": shade(color, 19),
             }
           : {}
       }
@@ -256,12 +296,13 @@ const NepaliCalendar = ({
                 : toNepaliDateString(selectedDate.format("YYYY-MM-DD"))
               : ""
           }
-          id="nepali-date"
-          name="nepaliDate"
-          onFocus={() => !disabled && setIsCalendarOpen(true)}
+          id={id}
+          name={name}
+          onFocus={openCalendar}
+          onClick={openCalendar}
           placeholder={placeholder || translatedPlaceholder}
           style={{
-            "--placeholder-color": color ? `${color}80` : "#4f46e580",
+            "--placeholder-color": shade(color || "#4f46e5", 50),
           }}
           readOnly
           disabled={disabled}
@@ -279,6 +320,7 @@ const NepaliCalendar = ({
             strokeLinecap="round"
             strokeLinejoin="round"
             xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
           >
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
             <line x1="16" y1="2" x2="16" y2="6" />
@@ -301,18 +343,17 @@ const NepaliCalendar = ({
             zIndex: 1000,
           }}
           role="dialog"
-          aria-modal="true"
-          aria-label="नेपाली क्यालेन्डर"
+          aria-label={ariaLabels.calendar}
         >
           <div className="nepali-calendar-header">
             <button
               type="button"
               onClick={handlePrevMonth}
               className="nepali-calendar-nav-button"
-              aria-label="अघिल्लो महिना"
+              aria-label={ariaLabels.prevMonth}
               disabled={
-                visibleMonth.getMonth() === 0 &&
-                !availableYears.includes(visibleMonth.getYear() - 1)
+                visibleMonthIndex === 0 &&
+                !availableYears.includes(visibleYear - 1)
               }
             >
               ‹
@@ -320,10 +361,10 @@ const NepaliCalendar = ({
 
             <div className="nepali-calendar-month-selector">
               <select
-                value={visibleMonth.getYear()}
+                value={visibleYear}
                 onChange={handleYearChange}
                 className="nepali-calendar-year-select"
-                aria-label="वर्ष चयन गर्नुहोस्"
+                aria-label={ariaLabels.selectYear}
               >
                 {availableYears.map((year) => (
                   <option key={year} value={year}>
@@ -332,7 +373,7 @@ const NepaliCalendar = ({
                 ))}
               </select>
               <span className="nepali-calendar-month-name">
-                {monthNames[visibleMonth.getMonth()]}
+                {monthNames[visibleMonthIndex]}
               </span>
             </div>
 
@@ -340,12 +381,11 @@ const NepaliCalendar = ({
               type="button"
               onClick={handleNextMonth}
               className="nepali-calendar-nav-button"
-              aria-label="अर्को महिना"
+              aria-label={ariaLabels.nextMonth}
               disabled={
-                visibleMonth.getMonth() ===
-                  calendarData[visibleMonth.getYear().toString()].months
-                    .length -
-                    1 && !availableYears.includes(visibleMonth.getYear() + 1)
+                visibleMonthIndex ===
+                  calendarData[visibleYear.toString()].months.length - 1 &&
+                !availableYears.includes(visibleYear + 1)
               }
             >
               ›
@@ -363,16 +403,24 @@ const NepaliCalendar = ({
 
             <div className="nepali-calendar-days">
               {calendarGrid.map((date, i) => {
-                const isToday =
-                  date?.format("YYYY-MM-DD") === today.format("YYYY-MM-DD");
-                const isSelected =
-                  date?.format("YYYY-MM-DD") ===
-                  selectedDate?.format("YYYY-MM-DD");
+                if (!date) {
+                  return (
+                    <div
+                      key={`blank-${i}`}
+                      className="nepali-calendar-day empty"
+                      aria-hidden="true"
+                    />
+                  );
+                }
+
+                const dateKey = date.format("YYYY-MM-DD");
+                const isToday = dateKey === todayKey;
+                const isSelected = dateKey === selectedKey;
                 const isDisabled = isDateDisabled(date);
 
                 return (
                   <button
-                    key={i}
+                    key={dateKey}
                     type="button"
                     className={`nepali-calendar-day ${
                       isSelected ? "selected" : ""
@@ -381,15 +429,11 @@ const NepaliCalendar = ({
                     }`}
                     onClick={() => handleDateClick(date)}
                     disabled={isDisabled}
-                    aria-label={
-                      date
-                        ? `${date.format("YYYY-MM-DD")}${isToday ? ", आज" : ""}`
-                        : "खाली दिन"
-                    }
+                    aria-label={`${dateKey}${isToday ? `, ${todayText}` : ""}`}
                     aria-current={isToday ? "date" : undefined}
-                    aria-selected={isSelected}
+                    aria-pressed={isSelected}
                   >
-                    {date ? toLocalizedNumber(date.getDate(), language) : ""}
+                    {toLocalizedNumber(date.getDate(), language)}
                   </button>
                 );
               })}
@@ -430,6 +474,8 @@ NepaliCalendar.propTypes = {
   size: PropTypes.oneOf(["small", "medium", "large"]),
   variant: PropTypes.oneOf(["default", "outlined", "filled"]),
   language: PropTypes.oneOf(["nepali", "english"]),
+  id: PropTypes.string,
+  name: PropTypes.string,
 };
 
 export default NepaliCalendar;
