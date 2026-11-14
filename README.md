@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@adhikarisaroj795/nepali-calendar-react.svg)](https://www.npmjs.com/package/@adhikarisaroj795/nepali-calendar-react) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A Nepali (Bikram Sambat) date picker for React, plus simple AD ↔ BS date conversion.
+A Nepali (Bikram Sambat) date picker and AD ↔ BS date converter. It works in React, in a plain HTML page, in other frameworks, and in Node.js.
 
 - Date picker in Nepali or English
 - One-line conversion: `adToBs("2026-11-14")` → `"2083-07-28"`
@@ -11,13 +11,24 @@ A Nepali (Bikram Sambat) date picker for React, plus simple AD ↔ BS date conve
 - Safe to import in server-rendered apps (Next.js, Remix)
 - TypeScript types included
 
+## Which one do I use?
+
+| Where                              | What to load                                                  |
+| ---------------------------------- | ------------------------------------------------------------- |
+| React                              | `@adhikarisaroj795/nepali-calendar-react`                     |
+| Plain HTML page                    | `dist/standalone.js` with a `<script>` tag                    |
+| Vue, Svelte, Angular, no framework | `@adhikarisaroj795/nepali-calendar-react/standalone`          |
+| Node.js, or conversion only        | `@adhikarisaroj795/nepali-calendar-react/convert`             |
+
 ## Installation
 
 ```bash
 npm install @adhikarisaroj795/nepali-calendar-react
 ```
 
-## Date picker
+For a plain HTML page you do not need to install anything. See [Plain HTML](#plain-html).
+
+## React
 
 ```jsx
 import { useState } from "react";
@@ -41,9 +52,11 @@ export default function App() {
 
 The styles are added automatically. You do not need to import a CSS file.
 
-### Props
+### Options
 
-| Prop          | Type       | Default        | Description                                        |
+These are the props in React, and the options of `create()` everywhere else.
+
+| Option        | Type       | Default        | Description                                        |
 | ------------- | ---------- | -------------- | -------------------------------------------------- |
 | `value`       | `string`   | today          | Selected BS date, `"YYYY-MM-DD"`                   |
 | `onChange`    | `function` | -              | Called with the selected date (see below)          |
@@ -69,11 +82,74 @@ The styles are added automatically. You do not need to import a CSS file.
 
 If you do not pass `value`, the picker starts on today and calls `onChange` once with today's date when it first appears.
 
-## Date conversion
+## Plain HTML
+
+Add one script tag. It gives you the date picker and all the conversion functions, with nothing else to install.
+
+```html
+<div id="dob"></div>
+
+<script src="https://unpkg.com/@adhikarisaroj795/nepali-calendar-react/dist/standalone.js"></script>
+<script>
+  const picker = NepaliDatePicker.create("#dob", {
+    language: "nepali",
+    color: "#16a34a",
+    onChange: (date) => console.log(date.bs, date.ad),
+  });
+
+  console.log(NepaliDatePicker.adToBs("2026-11-14")); // "2083-07-28"
+</script>
+```
+
+`NepaliDatePicker.create(target, options)` puts a date picker inside an element. `target` is a CSS selector or an element. It returns an object with these methods:
+
+| Method                | What it does                                          |
+| --------------------- | ----------------------------------------------------- |
+| `getValue()`          | Returns `{ bs, ad }` of the selected date             |
+| `setValue(bs)`        | Selects a BS date, `"YYYY-MM-DD"`                     |
+| `update(options)`     | Changes options, e.g. `update({ language: "english" })` |
+| `destroy()`           | Removes the picker from the page                      |
+
+To always load the same release, put a version in the address, for example `.../nepali-calendar-react@1/dist/standalone.js`.
+
+## Vue, Svelte, Angular and others
+
+Use the same `create()` function from the `/standalone` entry. Call it when your element is on the page, and call `destroy()` when it is removed.
 
 ```js
-import { adToBs, bsToAd } from "@adhikarisaroj795/nepali-calendar-react";
+import { create } from "@adhikarisaroj795/nepali-calendar-react/standalone";
 
+const picker = create(document.getElementById("dob"), {
+  language: "english",
+  onChange: (date) => console.log(date.bs, date.ad),
+});
+
+// later, when the element goes away
+picker.destroy();
+```
+
+## Node.js, or conversion only
+
+The `/convert` entry has only the conversion functions. It does not need React.
+
+```js
+// CommonJS
+const { adToBs, bsToAd } = require("@adhikarisaroj795/nepali-calendar-react/convert");
+
+// ES modules
+import { adToBs, bsToAd } from "@adhikarisaroj795/nepali-calendar-react/convert";
+
+adToBs("2026-11-14"); // "2083-07-28"
+bsToAd("2083-07-28"); // "2026-11-14"
+```
+
+For a plain HTML page that only needs conversion, there is a smaller script: `dist/convert.js`. It adds a global called `NepaliDateConverter`.
+
+## Date conversion
+
+The same functions are available from every entry.
+
+```js
 adToBs("2026-11-14"); // "2083-07-28"
 bsToAd("2083-07-28"); // "2026-11-14"
 ```
@@ -92,15 +168,9 @@ In these functions, months are always 1–12.
 ### Formatting
 
 ```js
-import {
-  adToBs,
-  formatBs,
-  todayBs,
-} from "@adhikarisaroj795/nepali-calendar-react";
-
 adToBs("2026-11-14", "D MMMM YYYY, dddd", "nepali"); // "२८ कात्तिक २०८३, शनिबार"
-formatBs("2083-07-28", "dddd, MMMM D, YYYY"); // "Saturday, Kartik 28, 2083"
-todayBs(); // today's BS date
+formatBs("2083-07-28", "dddd, MMMM D, YYYY");        // "Saturday, Kartik 28, 2083"
+todayBs();                                           // today's BS date
 ```
 
 | Token  | Meaning         | Example    |
@@ -157,9 +227,11 @@ The older functions `convertADtoBS`, `convertBStoAD`, `convertJStoBS`, `convertB
 
 ```bash
 npm install
-npm run dev    # demo page with live reload
+npm run dev    # React demo page with live reload
 npm test       # builds, then runs the tests in six timezones
 ```
+
+After `npm run build`, open `demo/plain.html` in a browser to see the plain HTML version.
 
 ## License
 

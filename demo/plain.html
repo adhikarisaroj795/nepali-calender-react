@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nepali date picker - plain HTML</title>
+  </head>
+  <body style="font-family: sans-serif; padding: 40px; max-width: 420px">
+    <h2>Plain HTML, no React</h2>
+
+    <h3>Date picker (Nepali)</h3>
+    <div id="picker-np"></div>
+
+    <h3>Date picker (English)</h3>
+    <div id="picker-en"></div>
+
+    <p id="picked"></p>
+
+    <h3>Conversion</h3>
+    <p>
+      AD date: <input id="ad" type="date" value="2026-11-14" />
+      → BS: <strong id="bs"></strong>
+    </p>
+
+    <!-- After publishing you can load it from a CDN instead:
+         https://unpkg.com/@adhikarisaroj795/nepali-calendar-react/dist/standalone.js -->
+    <script src="../dist/standalone.js"></script>
+    <script>
+      const picked = document.getElementById("picked");
+      const showPicked = (date) => {
+        picked.textContent = "Picked: BS " + date.bs + " / AD " + date.ad;
+      };
+
+      NepaliDatePicker.create("#picker-np", {
+        language: "nepali",
+        color: "#16a34a",
+        onChange: showPicked,
+      });
+
+      NepaliDatePicker.create("#picker-en", {
+        language: "english",
+        color: "#2563eb",
+        onChange: showPicked,
+      });
+
+      const adInput = document.getElementById("ad");
+      const bsOutput = document.getElementById("bs");
+      const convert = () => {
+        bsOutput.textContent = adInput.value
+          ? NepaliDatePicker.adToBs(adInput.value, "D MMMM YYYY, dddd", "nepali")
+          : "";
+      };
+      adInput.addEventListener("input", convert);
+      convert();
+    </script>
+  </body>
+</html>

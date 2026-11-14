@@ -1,7 +1,7 @@
 {
   "name": "@adhikarisaroj795/nepali-calendar-react",
   "version": "1.1.1",
-  "description": "A comprehensive Nepali calendar component for React applications",
+  "description": "Nepali (Bikram Sambat) date picker and AD to BS / BS to AD date converter for React, plain HTML and Node.js",
   "main": "dist/index.js",
   "scripts": {
     "build": "webpack --mode production",
@@ -23,6 +23,8 @@
     "@vitejs/plugin-react": "^6.3.0",
     "babel-loader": "^10.0.0",
     "css-loader": "^7.1.2",
+    "jsdom": "^31.0.1",
+    "preact": "^11.2.0",
     "prop-types": "^15.8.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
@@ -32,11 +34,17 @@
     "webpack-cli": "^6.0.1"
   },
   "keywords": [
-    "nepali",
-    "calendar",
-    "react",
-    "datepicker",
+    "nepali-date-picker",
+    "nepali-datepicker",
+    "nepali-calendar",
     "bikram-sambat",
+    "bs-to-ad",
+    "ad-to-bs",
+    "nepali-date-converter",
+    "react",
+    "react-nepali-calendar",
+    "nepali",
+    "datepicker",
     "bs-date"
   ],
   "author": {
@@ -46,7 +54,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/adhikarisaroj795/nepali-calender-react.git"
+    "url": "git+https://github.com/adhikarisaroj795/nepali-calender-react.git"
   },
   "bugs": {
     "url": "https://github.com/adhikarisaroj795/nepali-calender-react/issues"
@@ -58,7 +66,38 @@
   "files": [
     "dist",
     "styles/nepalicalender.css",
-    "index.d.ts"
+    "index.d.ts",
+    "convert.d.ts",
+    "standalone.d.ts"
   ],
-  "types": "index.d.ts"
+  "types": "index.d.ts",
+  "unpkg": "dist/standalone.js",
+  "jsdelivr": "dist/standalone.js",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./convert": {
+      "types": "./convert.d.ts",
+      "import": "./dist/convert.mjs",
+      "require": "./dist/convert.js"
+    },
+    "./standalone": {
+      "types": "./standalone.d.ts",
+      "import": "./dist/standalone.mjs",
+      "require": "./dist/standalone.js"
+    },
+    "./styles/*": "./styles/*",
+    "./dist/*": "./dist/*",
+    "./package.json": "./package.json"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  }
 }
