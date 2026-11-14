@@ -1,6 +1,6 @@
 {
   "name": "@adhikarisaroj795/nepali-calendar-react",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A comprehensive Nepali calendar component for React applications",
   "main": "dist/index.js",
   "scripts": {
