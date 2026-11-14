@@ -1,6 +1,6 @@
 {
   "name": "@adhikarisaroj795/nepali-calendar-react",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Nepali (Bikram Sambat) date picker and AD to BS / BS to AD date converter for React, plain HTML and Node.js",
   "main": "dist/index.js",
   "scripts": {
