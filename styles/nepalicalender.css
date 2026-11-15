@@ -322,3 +322,63 @@
   color: var(--placeholder-color);
   opacity: 1;
 }
+
+/* Keyboard focus on a day */
+.nepali-calendar-day:focus-visible,
+.nepali-calendar-nav-button:focus-visible,
+.nepali-calendar-today-button:focus-visible,
+.nepali-calendar-close-button:focus-visible {
+  outline: 2px solid var(--calendar-color, #4f46e5);
+  outline-offset: 2px;
+}
+
+/* Sizes: size="small" | "medium" | "large" */
+.nepali-calendar--small .nepali-calendar-input {
+  padding: 6px 10px;
+  padding-right: 32px;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+.nepali-calendar--small .nepali-calendar-icon {
+  right: 8px;
+}
+
+.nepali-calendar--small .nepali-calendar-icon > svg {
+  width: 22px;
+  height: 22px;
+}
+
+.nepali-calendar--large .nepali-calendar-input {
+  padding: 14px 18px;
+  padding-right: 52px;
+  font-size: 18px;
+  border-radius: 10px;
+}
+
+.nepali-calendar--large .nepali-calendar-icon {
+  right: 14px;
+}
+
+.nepali-calendar--large .nepali-calendar-icon > svg {
+  width: 34px;
+  height: 34px;
+}
+
+/* Variants: variant="default" | "outlined" | "filled" */
+.nepali-calendar--outlined .nepali-calendar-input {
+  border: 2px solid var(--calendar-color, #4f46e5);
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.nepali-calendar--filled .nepali-calendar-input {
+  border-color: transparent;
+  background-color: #f3f4f6;
+  box-shadow: none;
+}
+
+.nepali-calendar--filled .nepali-calendar-input:focus {
+  background-color: #fff;
+  border-color: var(--calendar-color, #4f46e5);
+}

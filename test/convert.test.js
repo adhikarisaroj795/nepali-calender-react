@@ -17,30 +17,25 @@ test("the calendar component renders", () => {
   const { renderToString } = require("react-dom/server");
 
   const english = renderToString(
-    React.createElement(lib.default, {
-      language: "english",
-      value: "2083-07-28",
-    }),
+    React.createElement(lib.default, { language: "english", value: "2083-07-28" })
   );
   assert.match(english, /nepali-calendar-container/);
   assert.match(english, /value="2083-07-28"/);
 
   const nepali = renderToString(
-    React.createElement(lib.default, {
-      language: "nepali",
-      value: "2083-07-28",
-    }),
+    React.createElement(lib.default, { language: "nepali", value: "2083-07-28" })
   );
   assert.match(nepali, /value="२०८३-०७-२८"/);
 });
 
 test("known date pairs", () => {
   const pairs = [
+    ["1920-01-01", "1863-04-12"],
     ["2000-01-01", "1943-04-14"],
     ["2081-01-01", "2024-04-13"],
     ["2082-04-20", "2025-08-05"],
     ["2083-07-28", "2026-11-14"],
-    ["2099-12-30", "2043-04-13"],
+    ["2199-12-30", "2143-04-15"],
   ];
   for (const [bs, ad] of pairs) {
     assert.strictEqual(lib.bsToAd(bs), ad);
@@ -59,7 +54,7 @@ test("every day converts both ways", () => {
       for (let day = 1; day <= month.days; day++) {
         const d = new Date(cursor);
         const ad = `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(
-          d.getUTCDate(),
+          d.getUTCDate()
         )}`;
         const bs = `${year}-${pad(index + 1)}-${pad(day)}`;
         if (lib.bsToAd(bs) !== ad || lib.adToBs(ad) !== bs) {
@@ -70,6 +65,8 @@ test("every day converts both ways", () => {
       }
     });
   }
+  // the whole table was walked, first day to last day
+  assert.strictEqual(lib.adToBs(new Date(cursor - 24 * 60 * 60 * 1000).toISOString().slice(0, 10)).slice(0, 4), years[years.length - 1]);
   assert.ok(count > 36000);
 });
 
@@ -85,36 +82,27 @@ test("bsToAdDate returns the right local day", () => {
   const date = lib.bsToAdDate("2083-07-28");
   assert.deepStrictEqual(
     [date.getFullYear(), date.getMonth() + 1, date.getDate()],
-    [2026, 11, 14],
+    [2026, 11, 14]
   );
 });
 
 test("flexible input formats", () => {
   assert.strictEqual(lib.bsToAd("2083/7/28"), "2026-11-14");
   assert.strictEqual(lib.bsToAd("२०८३-०७-२८"), "2026-11-14");
-  assert.strictEqual(
-    lib.bsToAd({ year: 2083, month: 7, day: 28 }),
-    "2026-11-14",
-  );
-  assert.strictEqual(
-    lib.adToBs({ year: 2026, month: 11, day: 14 }),
-    "2083-07-28",
-  );
+  assert.strictEqual(lib.bsToAd({ year: 2083, month: 7, day: 28 }), "2026-11-14");
+  assert.strictEqual(lib.adToBs({ year: 2026, month: 11, day: 14 }), "2083-07-28");
 });
 
 test("formatting", () => {
   assert.strictEqual(
     lib.formatBs("2083-07-28", "dddd, MMMM D, YYYY"),
-    "Saturday, Kartik 28, 2083",
+    "Saturday, Kartik 28, 2083"
   );
   assert.strictEqual(
     lib.adToBs("2026-11-14", "D MMMM YYYY, dddd", "nepali"),
-    "२८ कात्तिक २०८३, शनिबार",
+    "२८ कात्तिक २०८३, शनिबार"
   );
-  assert.strictEqual(
-    lib.formatBs("2083-07-28", "[BS] YYYY.MM.DD"),
-    "BS 2083.07.28",
-  );
+  assert.strictEqual(lib.formatBs("2083-07-28", "[BS] YYYY.MM.DD"), "BS 2083.07.28");
 });
 
 test("details and helpers", () => {
@@ -127,7 +115,11 @@ test("details and helpers", () => {
   assert.strictEqual(lib.getDaysInBsMonth(2083, 7), 30);
   assert.strictEqual(lib.isValidBsDate("2083-07-30"), true);
   assert.strictEqual(lib.isValidBsDate("2083-07-31"), false);
-  assert.deepStrictEqual(lib.getBsYearRange(), { min: 2000, max: 2099 });
+  const years = Object.keys(data).map(Number);
+  assert.deepStrictEqual(lib.getBsYearRange(), {
+    min: Math.min(...years),
+    max: Math.max(...years),
+  });
   assert.match(lib.todayBs(), /^\d{4}-\d{2}-\d{2}$/);
 });
 
@@ -135,7 +127,9 @@ test("bad input throws a clear error", () => {
   assert.throws(() => lib.bsToAd("hello"), /Invalid BS date/);
   assert.throws(() => lib.adToBs("2025-02-30"), /Invalid AD date/);
   assert.throws(() => lib.bsToAd("2083-13-01"), /Invalid month/);
-  assert.throws(() => lib.adToBs("1900-01-01"), /not found/);
+  assert.throws(() => lib.adToBs("1800-01-01"), /not found/);
+  assert.throws(() => lib.adToBs("2300-01-01"), /not found/);
+  assert.throws(() => lib.bsToAd("1900-01-01"), /No calendar data/);
 });
 
 test("number helpers", () => {

@@ -26,6 +26,10 @@ export interface NepaliDatePickerOptions {
   color?: string;
   placeholder?: string;
   disabled?: boolean;
+  /** Size of the input. Default "medium" */
+  size?: "small" | "medium" | "large";
+  /** Look of the input. Default "default" */
+  variant?: "default" | "outlined" | "filled";
   id?: string;
   name?: string;
 }

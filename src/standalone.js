@@ -21,6 +21,8 @@ const OPTION_NAMES = [
   "color",
   "placeholder",
   "disabled",
+  "size",
+  "variant",
   "id",
   "name",
 ];

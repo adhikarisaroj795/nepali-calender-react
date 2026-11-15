@@ -6,7 +6,8 @@ A Nepali (Bikram Sambat) date picker and AD ↔ BS date converter. It works in R
 
 - Date picker in Nepali or English
 - One-line conversion: `adToBs("2026-11-14")` → `"2083-07-28"`
-- Covers BS 2000–2099 (AD 1943–2043)
+- Covers BS 1920–2199 (AD 1863–2143)
+- Keyboard support: arrow keys, Page Up/Down, Home/End, Enter, Escape
 - Same result in every timezone
 - Safe to import in server-rendered apps (Next.js, Remix)
 - TypeScript types included
@@ -64,6 +65,8 @@ These are the props in React, and the options of `create()` everywhere else.
 | `color`       | `string`   | `"#4f46e5"`    | Theme color. Any CSS color: `"#DC143C"`, `"green"` |
 | `minDate`     | `string`   | -              | Earliest selectable BS date, `"YYYY-MM-DD"`        |
 | `maxDate`     | `string`   | -              | Latest selectable BS date, `"YYYY-MM-DD"`          |
+| `size`        | `string`   | `"medium"`     | `"small"`, `"medium"` or `"large"`                 |
+| `variant`     | `string`   | `"default"`    | `"default"`, `"outlined"` or `"filled"`            |
 | `placeholder` | `string`   | by language    | Placeholder text                                   |
 | `disabled`    | `boolean`  | `false`        | Disables the input                                 |
 | `id`          | `string`   | -              | `id` of the input                                  |
@@ -81,6 +84,18 @@ These are the props in React, and the options of `create()` everywhere else.
 ```
 
 If you do not pass `value`, the picker starts on today and calls `onChange` once with today's date when it first appears.
+
+### Keyboard
+
+| Key                         | What it does                                   |
+| --------------------------- | ---------------------------------------------- |
+| `↓`, `Enter` or `Space`     | On the input: opens the calendar               |
+| `←` `→`                     | Previous / next day                            |
+| `↑` `↓`                     | Same weekday in the previous / next week       |
+| `Page Up` / `Page Down`     | Previous / next month                          |
+| `Home` / `End`              | First / last day of the month                  |
+| `Enter` or `Space`          | Picks the focused day                          |
+| `Escape`                    | Closes the calendar                            |
 
 ## Plain HTML
 
@@ -197,7 +212,7 @@ Put text you want kept as-is in square brackets: `"[BS] YYYY-MM-DD"`.
 | `todayBs(pattern?, language?)`            | Today's BS date string                       |
 | `isValidBsDate(bs)`                       | `true` or `false`                            |
 | `getDaysInBsMonth(year, month)`           | Number of days in that BS month              |
-| `getBsYearRange()`                        | `{ min: 2000, max: 2099 }`                   |
+| `getBsYearRange()`                        | `{ min: 1920, max: 2199 }`                   |
 | `toNepaliNumber(value)`                   | `12345` → `"१२३४५"`                          |
 
 `adToBsDetails("2026-11-14")` returns:
@@ -219,9 +234,15 @@ Put text you want kept as-is in square brackets: `"[BS] YYYY-MM-DD"`.
 }
 ```
 
-Dates outside BS 2000–2099, and invalid dates, throw an `Error`.
+Dates outside BS 1920–2199, and invalid dates, throw an `Error`.
 
 The older functions `convertADtoBS`, `convertBStoAD`, `convertJStoBS`, `convertBStoJS` and `dateConverter` still work.
+
+## About the dates
+
+The Bikram Sambat calendar has no formula. The length of each month is decided year by year, so this package ships a table of month lengths for BS 1920–2199.
+
+Past and current years match the published calendar. Month lengths for future years are projections, and different sources do not always agree on them. A converted date in a future year can therefore be a day off from the calendar that is eventually published. The table is updated in new releases.
 
 ## Development
 
@@ -230,6 +251,8 @@ npm install
 npm run dev    # React demo page with live reload
 npm test       # builds, then runs the tests in six timezones
 ```
+
+The date table lives in `src/data/NepaliDates.json`. Every build checks it (12 months per year, 29–32 days per month, each month starting the day after the previous one ends, 365 or 366 days per year) and stops with a message if something is wrong.
 
 After `npm run build`, open `demo/plain.html` in a browser to see the plain HTML version.
 

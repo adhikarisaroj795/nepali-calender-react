@@ -21,6 +21,7 @@ for (const zone of zones) {
       path.join(__dirname, "convert.test.js"),
       path.join(__dirname, "converter.test.js"),
       path.join(__dirname, "standalone.test.js"),
+      path.join(__dirname, "react-ui.test.js"),
     ],
     { env: { ...process.env, TZ: zone }, encoding: "utf8" }
   );

@@ -9,55 +9,28 @@
  * (month is 1-12), and - for AD input - a JS Date.
  * Months are always 1-12 in this API.
  */
-import calendarData from "../data/NepaliDates.json";
+import {
+  FIRST_YEAR,
+  LAST_YEAR,
+  hasYear,
+  getMonthLength,
+} from "../data/calendar";
 import { NepaliDate } from "./dateUtils";
 import { toNepaliNumber } from "./numberUtils";
 
 const MONTHS_EN = [
-  "Baisakh",
-  "Jestha",
-  "Ashad",
-  "Shrawan",
-  "Bhadra",
-  "Ashwin",
-  "Kartik",
-  "Mangsir",
-  "Poush",
-  "Magh",
-  "Falgun",
-  "Chaitra",
+  "Baisakh", "Jestha", "Ashad", "Shrawan", "Bhadra", "Ashwin",
+  "Kartik", "Mangsir", "Poush", "Magh", "Falgun", "Chaitra",
 ];
 const MONTHS_NP = [
-  "बैशाख",
-  "जेठ",
-  "असार",
-  "साउन",
-  "भदौ",
-  "असोज",
-  "कात्तिक",
-  "मंसिर",
-  "पुष",
-  "माघ",
-  "फाल्गुन",
-  "चैत्र",
+  "बैशाख", "जेठ", "असार", "साउन", "भदौ", "असोज",
+  "कात्तिक", "मंसिर", "पुष", "माघ", "फाल्गुन", "चैत्र",
 ];
 const WEEKDAYS_EN = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
+  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
 ];
 const WEEKDAYS_NP = [
-  "आइतबार",
-  "सोमबार",
-  "मङ्गलबार",
-  "बुधबार",
-  "बिहीबार",
-  "शुक्रबार",
-  "शनिबार",
+  "आइतबार", "सोमबार", "मङ्गलबार", "बुधबार", "बिहीबार", "शुक्रबार", "शनिबार",
 ];
 
 const NEPALI_DIGITS = "०१२३४५६७८९";
@@ -77,7 +50,7 @@ const toParts = (input, label) => {
   }
   throw new Error(
     `Invalid ${label} date: ${JSON.stringify(input)}. ` +
-      `Use "YYYY-MM-DD" or { year, month, day }.`,
+      `Use "YYYY-MM-DD" or { year, month, day }.`
   );
 };
 
@@ -117,7 +90,7 @@ const formatNepaliDate = (nd, pattern, language) => {
   // [text in brackets] is kept as-is.
   return pattern.replace(
     /\[([^\]]*)\]|YYYY|MMMM|MM|M|DD|D|dddd/g,
-    (token, literal) => (literal !== undefined ? literal : tokens[token]),
+    (token, literal) => (literal !== undefined ? literal : tokens[token])
   );
 };
 
@@ -146,7 +119,7 @@ const details = (nd) => ({
   weekDay: nd.getDay(),
   weekDayName: WEEKDAYS_EN[nd.getDay()],
   weekDayNameNp: WEEKDAYS_NP[nd.getDay()],
-  daysInMonth: calendarData[String(nd.year)].months[nd.month].days,
+  daysInMonth: getMonthLength(nd.year, nd.month),
   adDate: nd.toJSDate(),
 });
 
@@ -172,15 +145,11 @@ export const isValidBsDate = (bs) => {
 
 /** Number of days in a BS month (month is 1-12). */
 export const getDaysInBsMonth = (year, month) => {
-  const yearData = calendarData[String(year)];
-  if (!yearData || !yearData.months[month - 1]) {
+  if (!hasYear(year) || !Number.isInteger(month) || month < 1 || month > 12) {
     throw new Error(`No calendar data for BS ${year}-${month}`);
   }
-  return yearData.months[month - 1].days;
+  return getMonthLength(year, month - 1);
 };
 
-/** Supported BS years, e.g. { min: 2000, max: 2099 }. */
-export const getBsYearRange = () => {
-  const years = Object.keys(calendarData).map(Number);
-  return { min: Math.min(...years), max: Math.max(...years) };
-};
+/** Supported BS years, e.g. { min: 1920, max: 2199 }. */
+export const getBsYearRange = () => ({ min: FIRST_YEAR, max: LAST_YEAR });

@@ -1,20 +1,33 @@
+import { useState, useRef, useEffect, useMemo } from "react";
 import PropTypes from "prop-types";
-import { useEffect, useMemo, useRef, useState } from "react";
 
-import calendarData from "../data/NepaliDates.json";
+import {
+  FIRST_YEAR,
+  LAST_YEAR,
+  hasYear,
+  getMonthLength,
+} from "../data/calendar";
 import { NepaliDate } from "../utils/dateUtils";
-import { injectStyles } from "../utils/injectStyles";
 import {
   toLocalizedNumber,
   toNepaliDateString,
   translations,
 } from "../utils/numberUtils";
+import { injectStyles } from "../utils/injectStyles";
 
 injectStyles();
 
 // Lighter shade of any CSS color (hex, rgb(), named colors like "green").
 const shade = (color, percent) =>
   `color-mix(in srgb, ${color} ${percent}%, transparent)`;
+
+const SIZES = ["small", "medium", "large"];
+const VARIANTS = ["default", "outlined", "filled"];
+
+const parseBsDate = (value) => {
+  const [year, month, day] = value.split("-").map(Number);
+  return new NepaliDate(year, month - 1, day);
+};
 
 const NepaliCalendar = ({
   onChange,
@@ -44,8 +57,7 @@ const NepaliCalendar = ({
   const initialDate = useMemo(() => {
     if (value) {
       try {
-        const [year, month, day] = value.split("-").map(Number);
-        return new NepaliDate(year, month - 1, day);
+        return parseBsDate(value);
       } catch (e) {
         console.error("Invalid initial date:", value, e);
         return today;
@@ -56,11 +68,9 @@ const NepaliCalendar = ({
 
   useEffect(() => {
     if (!value && onChange) {
-      const initialBsDate = today.format("YYYY-MM-DD");
-      const initialAdDate = today.toADString();
       onChange({
-        bs: initialBsDate,
-        ad: initialAdDate,
+        bs: today.format("YYYY-MM-DD"),
+        ad: today.toADString(),
         bsDate: today,
         adDate: today.toGregorian(),
       });
@@ -69,46 +79,40 @@ const NepaliCalendar = ({
 
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [visibleMonth, setVisibleMonth] = useState(
-    new NepaliDate(initialDate.getYear(), initialDate.getMonth(), 1),
+    new NepaliDate(initialDate.getYear(), initialDate.getMonth(), 1)
   );
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [popupPosition, setPopupPosition] = useState("below");
+  // The day that has keyboard focus inside the popup (null = none).
+  const [focusedDate, setFocusedDate] = useState(null);
+
   const inputRef = useRef(null);
   const calendarRef = useRef(null);
+  // Set just before we move focus back to the input ourselves, so that
+  // focus does not immediately reopen the popup.
+  const skipNextOpenRef = useRef(false);
 
-  const availableYears = useMemo(
-    () =>
-      Object.keys(calendarData)
-        .map(Number)
-        .sort((a, b) => a - b),
-    [],
-  );
+  const availableYears = useMemo(() => {
+    const years = [];
+    for (let year = FIRST_YEAR; year <= LAST_YEAR; year++) years.push(year);
+    return years;
+  }, []);
 
-  const currentMonthData = useMemo(
-    () =>
-      calendarData[visibleMonth.getYear().toString()]?.months[
-        visibleMonth.getMonth()
-      ],
-    [visibleMonth],
-  );
+  const visibleYear = visibleMonth.getYear();
+  const visibleMonthIndex = visibleMonth.getMonth();
 
   const calendarDays = useMemo(() => {
     const days = [];
-    if (!currentMonthData) return days;
-
-    for (let day = 1; day <= currentMonthData.days; day++) {
-      days.push(
-        new NepaliDate(visibleMonth.getYear(), visibleMonth.getMonth(), day),
-      );
+    const count = getMonthLength(visibleYear, visibleMonthIndex);
+    for (let day = 1; day <= count; day++) {
+      days.push(new NepaliDate(visibleYear, visibleMonthIndex, day));
     }
     return days;
-  }, [currentMonthData, visibleMonth]);
+  }, [visibleYear, visibleMonthIndex]);
 
   const calendarGrid = useMemo(() => {
     if (!calendarDays.length) return [];
-
-    const firstDay = calendarDays[0].getDay();
-    const blanks = Array(firstDay).fill(null);
+    const blanks = Array(calendarDays[0].getDay()).fill(null);
     return [...blanks, ...calendarDays];
   }, [calendarDays]);
 
@@ -118,8 +122,7 @@ const NepaliCalendar = ({
 
     if (minDate) {
       try {
-        const [minYear, minMonth, minDay] = minDate.split("-").map(Number);
-        minDateObj = new NepaliDate(minYear, minMonth - 1, minDay);
+        minDateObj = parseBsDate(minDate);
       } catch (e) {
         console.error("Invalid minDate:", minDate, e);
       }
@@ -127,8 +130,7 @@ const NepaliCalendar = ({
 
     if (maxDate) {
       try {
-        const [maxYear, maxMonth, maxDay] = maxDate.split("-").map(Number);
-        maxDateObj = new NepaliDate(maxYear, maxMonth - 1, maxDay);
+        maxDateObj = parseBsDate(maxDate);
       } catch (e) {
         console.error("Invalid maxDate:", maxDate, e);
       }
@@ -142,14 +144,41 @@ const NepaliCalendar = ({
     };
   }, [minDate, maxDate]);
 
+  const showMonth = (year, month) => {
+    setVisibleMonth(new NepaliDate(year, month, 1));
+  };
+
   const openCalendar = () => {
+    if (skipNextOpenRef.current) {
+      skipNextOpenRef.current = false;
+      return;
+    }
     if (!disabled) setIsCalendarOpen(true);
+  };
+
+  // Close the popup. If the keyboard focus was inside it, give the focus
+  // back to the input so it is not lost.
+  const closeCalendar = () => {
+    const popup = calendarRef.current;
+    const focusWasInside =
+      popup &&
+      typeof document !== "undefined" &&
+      popup.contains(document.activeElement);
+
+    setIsCalendarOpen(false);
+    setFocusedDate(null);
+
+    if (focusWasInside && inputRef.current) {
+      skipNextOpenRef.current = true;
+      inputRef.current.focus();
+      skipNextOpenRef.current = false;
+    }
   };
 
   const handleDateClick = (date) => {
     if (!date || isDateDisabled(date)) return;
     setSelectedDate(date);
-    setIsCalendarOpen(false);
+    closeCalendar();
     if (onChange) {
       onChange({
         bs: date.format("YYYY-MM-DD"),
@@ -160,45 +189,143 @@ const NepaliCalendar = ({
     }
   };
 
+  const hasPrevMonth = visibleMonthIndex > 0 || hasYear(visibleYear - 1);
+  const hasNextMonth = visibleMonthIndex < 11 || hasYear(visibleYear + 1);
+
   const handlePrevMonth = (e) => {
     e.preventDefault();
-    const currentYear = visibleMonth.getYear();
-    const currentMonth = visibleMonth.getMonth();
-
-    if (currentMonth > 0) {
-      setVisibleMonth(new NepaliDate(currentYear, currentMonth - 1, 1));
+    if (!hasPrevMonth) return;
+    if (visibleMonthIndex > 0) {
+      showMonth(visibleYear, visibleMonthIndex - 1);
     } else {
-      const prevYearData = calendarData[String(currentYear - 1)];
-      if (prevYearData) {
-        setVisibleMonth(
-          new NepaliDate(currentYear - 1, prevYearData.months.length - 1, 1),
-        );
-      }
+      showMonth(visibleYear - 1, 11);
     }
   };
 
   const handleNextMonth = (e) => {
     e.preventDefault();
-    const currentYear = visibleMonth.getYear();
-    const currentMonth = visibleMonth.getMonth();
-    const monthsInCurrentYear =
-      calendarData[currentYear.toString()].months.length;
-
-    if (currentMonth < monthsInCurrentYear - 1) {
-      setVisibleMonth(new NepaliDate(currentYear, currentMonth + 1, 1));
-    } else if (calendarData[String(currentYear + 1)]) {
-      setVisibleMonth(new NepaliDate(currentYear + 1, 0, 1));
+    if (!hasNextMonth) return;
+    if (visibleMonthIndex < 11) {
+      showMonth(visibleYear, visibleMonthIndex + 1);
+    } else {
+      showMonth(visibleYear + 1, 0);
     }
   };
 
   const handleYearChange = (e) => {
-    const newYear = parseInt(e.target.value, 10);
-    const currentMonth = Math.min(
-      visibleMonth.getMonth(),
-      calendarData[newYear.toString()].months.length - 1,
-    );
-    setVisibleMonth(new NepaliDate(newYear, currentMonth, 1));
+    showMonth(parseInt(e.target.value, 10), visibleMonthIndex);
   };
+
+  // ----- keyboard -----
+
+  const moveFocusTo = (date) => {
+    if (!date || isDateDisabled(date)) return;
+    if (
+      date.getYear() !== visibleYear ||
+      date.getMonth() !== visibleMonthIndex
+    ) {
+      showMonth(date.getYear(), date.getMonth());
+    }
+    setFocusedDate(date);
+  };
+
+  // The day that the Tab key lands on, and where arrow keys start from.
+  const tabStopDate = useMemo(() => {
+    const inView = (date) =>
+      date &&
+      date.getYear() === visibleYear &&
+      date.getMonth() === visibleMonthIndex;
+
+    if (inView(focusedDate)) return focusedDate;
+    if (inView(selectedDate)) return selectedDate;
+    if (inView(today)) return today;
+    return calendarDays[0] || null;
+  }, [focusedDate, selectedDate, today, calendarDays, visibleYear, visibleMonthIndex]);
+
+  const handleInputKeyDown = (e) => {
+    if (disabled) return;
+    if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setIsCalendarOpen(true);
+      setFocusedDate(tabStopDate);
+    }
+  };
+
+  const shiftMonth = (date, months) => {
+    const total = date.getYear() * 12 + date.getMonth() + months;
+    const year = Math.floor(total / 12);
+    const month = total % 12;
+    if (!hasYear(year)) return null;
+    const day = Math.min(date.getDate(), getMonthLength(year, month));
+    return new NepaliDate(year, month, day);
+  };
+
+  const handleGridKeyDown = (e) => {
+    const key = e.target?.getAttribute?.("data-date");
+    if (!key) return;
+
+    let current;
+    try {
+      current = parseBsDate(key);
+    } catch (error) {
+      return;
+    }
+
+    const byDays = (count) => {
+      try {
+        return NepaliDate.fromDayNumber(current.toDayNumber() + count);
+      } catch (error) {
+        return null; // outside the calendar data
+      }
+    };
+
+    let target;
+    switch (e.key) {
+      case "ArrowLeft":
+        target = byDays(-1);
+        break;
+      case "ArrowRight":
+        target = byDays(1);
+        break;
+      case "ArrowUp":
+        target = byDays(-7);
+        break;
+      case "ArrowDown":
+        target = byDays(7);
+        break;
+      case "Home":
+        target = new NepaliDate(current.getYear(), current.getMonth(), 1);
+        break;
+      case "End":
+        target = new NepaliDate(
+          current.getYear(),
+          current.getMonth(),
+          getMonthLength(current.getYear(), current.getMonth())
+        );
+        break;
+      case "PageUp":
+        target = shiftMonth(current, -1);
+        break;
+      case "PageDown":
+        target = shiftMonth(current, 1);
+        break;
+      default:
+        return;
+    }
+
+    e.preventDefault();
+    moveFocusTo(target);
+  };
+
+  // Put the browser focus on the focused day once it is on screen.
+  const focusedKey = focusedDate ? focusedDate.format("YYYY-MM-DD") : null;
+  useEffect(() => {
+    if (!isCalendarOpen || !focusedKey || !calendarRef.current) return;
+    const button = calendarRef.current.querySelector(
+      `[data-date="${focusedKey}"]`
+    );
+    if (button) button.focus();
+  }, [isCalendarOpen, focusedKey, visibleYear, visibleMonthIndex]);
 
   // Close on outside click and on the Escape key.
   useEffect(() => {
@@ -212,12 +339,13 @@ const NepaliCalendar = ({
         !inputRef.current.contains(event.target)
       ) {
         setIsCalendarOpen(false);
+        setFocusedDate(null);
       }
     };
 
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
-        setIsCalendarOpen(false);
+        closeCalendar();
       }
     };
 
@@ -258,10 +386,9 @@ const NepaliCalendar = ({
   useEffect(() => {
     if (value) {
       try {
-        const [year, month, day] = value.split("-").map(Number);
-        const newDate = new NepaliDate(year, month - 1, day);
+        const newDate = parseBsDate(value);
         setSelectedDate(newDate);
-        setVisibleMonth(new NepaliDate(year, month - 1, 1));
+        showMonth(newDate.getYear(), newDate.getMonth());
       } catch (error) {
         console.error("Invalid date value provided:", value, error);
       }
@@ -270,12 +397,14 @@ const NepaliCalendar = ({
 
   const todayKey = today.format("YYYY-MM-DD");
   const selectedKey = selectedDate?.format("YYYY-MM-DD");
-  const visibleYear = visibleMonth.getYear();
-  const visibleMonthIndex = visibleMonth.getMonth();
+  const tabStopKey = tabStopDate?.format("YYYY-MM-DD");
+
+  const sizeClass = SIZES.includes(size) ? size : "medium";
+  const variantClass = VARIANTS.includes(variant) ? variant : "default";
 
   return (
     <div
-      className={`nepali-calendar-container ${size} ${variant}`}
+      className={`nepali-calendar-container nepali-calendar--${sizeClass} nepali-calendar--${variantClass}`}
       style={
         color
           ? {
@@ -300,6 +429,7 @@ const NepaliCalendar = ({
           name={name}
           onFocus={openCalendar}
           onClick={openCalendar}
+          onKeyDown={handleInputKeyDown}
           placeholder={placeholder || translatedPlaceholder}
           style={{
             "--placeholder-color": shade(color || "#4f46e5", 50),
@@ -351,10 +481,7 @@ const NepaliCalendar = ({
               onClick={handlePrevMonth}
               className="nepali-calendar-nav-button"
               aria-label={ariaLabels.prevMonth}
-              disabled={
-                visibleMonthIndex === 0 &&
-                !availableYears.includes(visibleYear - 1)
-              }
+              disabled={!hasPrevMonth}
             >
               ‹
             </button>
@@ -382,11 +509,7 @@ const NepaliCalendar = ({
               onClick={handleNextMonth}
               className="nepali-calendar-nav-button"
               aria-label={ariaLabels.nextMonth}
-              disabled={
-                visibleMonthIndex ===
-                  calendarData[visibleYear.toString()].months.length - 1 &&
-                !availableYears.includes(visibleYear + 1)
-              }
+              disabled={!hasNextMonth}
             >
               ›
             </button>
@@ -401,7 +524,7 @@ const NepaliCalendar = ({
               ))}
             </div>
 
-            <div className="nepali-calendar-days">
+            <div className="nepali-calendar-days" onKeyDown={handleGridKeyDown}>
               {calendarGrid.map((date, i) => {
                 if (!date) {
                   return (
@@ -422,6 +545,8 @@ const NepaliCalendar = ({
                   <button
                     key={dateKey}
                     type="button"
+                    data-date={dateKey}
+                    tabIndex={dateKey === tabStopKey ? 0 : -1}
                     className={`nepali-calendar-day ${
                       isSelected ? "selected" : ""
                     } ${isToday && !isSelected ? "today" : ""} ${
@@ -452,7 +577,7 @@ const NepaliCalendar = ({
             <button
               type="button"
               className="nepali-calendar-close-button"
-              onClick={() => setIsCalendarOpen(false)}
+              onClick={closeCalendar}
             >
               {closeText}
             </button>
@@ -471,8 +596,8 @@ NepaliCalendar.propTypes = {
   placeholder: PropTypes.string,
   disabled: PropTypes.bool,
   color: PropTypes.string,
-  size: PropTypes.oneOf(["small", "medium", "large"]),
-  variant: PropTypes.oneOf(["default", "outlined", "filled"]),
+  size: PropTypes.oneOf(SIZES),
+  variant: PropTypes.oneOf(VARIANTS),
   language: PropTypes.oneOf(["nepali", "english"]),
   id: PropTypes.string,
   name: PropTypes.string,

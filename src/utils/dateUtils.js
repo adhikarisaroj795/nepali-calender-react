@@ -1,5 +1,10 @@
-import calendarData from "../data/NepaliDates.json";
-import { toNepaliNumber } from "./numberUtils";
+import {
+  hasYear,
+  getMonthLength,
+  getMonthStart,
+  findDate,
+} from "../data/calendar";
+import { toNepaliNumber, translations } from "./numberUtils";
 
 /*
  * All date math is done with "day numbers" (days since 1970-01-01) computed
@@ -24,11 +29,6 @@ const dayNumberToYMD = (n) => {
   return [d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate()];
 };
 
-const monthStartDayNumber = (monthData) => {
-  const [y, m, d] = parseYMD(monthData.start);
-  return dayNumber(y, m, d);
-};
-
 export class NepaliDate {
   constructor(year, month, day) {
     this.year = year;
@@ -38,22 +38,13 @@ export class NepaliDate {
   }
 
   validateDate() {
-    const yearData = calendarData[String(this.year)];
-    if (!yearData) {
+    if (!hasYear(this.year)) {
       throw new Error(`No calendar data for year ${this.year}`);
     }
-    if (
-      !Number.isInteger(this.month) ||
-      this.month < 0 ||
-      this.month >= yearData.months.length
-    ) {
-      throw new Error(
-        `Invalid month ${this.month}. Must be between 0-${
-          yearData.months.length - 1
-        }`,
-      );
+    if (!Number.isInteger(this.month) || this.month < 0 || this.month > 11) {
+      throw new Error(`Invalid month ${this.month}. Must be between 0-11`);
     }
-    const daysInMonth = yearData.months[this.month].days;
+    const daysInMonth = getMonthLength(this.year, this.month);
     if (!Number.isInteger(this.day) || this.day < 1 || this.day > daysInMonth) {
       throw new Error(`Invalid day ${this.day} for month ${this.month}`);
     }
@@ -71,8 +62,7 @@ export class NepaliDate {
 
   /** Days since 1970-01-01 for this date (timezone independent). */
   toDayNumber() {
-    const monthData = calendarData[String(this.year)].months[this.month];
-    return monthStartDayNumber(monthData) + this.day - 1;
+    return getMonthStart(this.year, this.month) + this.day - 1;
   }
 
   /** Day of week, 0 = Sunday ... 6 = Saturday. */
@@ -90,7 +80,7 @@ export class NepaliDate {
       return `${this.year}-${pad(this.month + 1)}-${pad(this.day)}`;
     }
     return `${toNepaliNumber(this.day)} ${
-      calendarData[String(this.year)].months[this.month].name
+      translations.nepali.monthNames[this.month]
     } ${toNepaliNumber(this.year)}`;
   }
 
@@ -111,16 +101,11 @@ export class NepaliDate {
   }
 
   static fromDayNumber(n) {
-    for (const [year, yearData] of Object.entries(calendarData)) {
-      for (let month = 0; month < yearData.months.length; month++) {
-        const monthData = yearData.months[month];
-        const start = monthStartDayNumber(monthData);
-        if (n >= start && n < start + monthData.days) {
-          return new NepaliDate(Number(year), month, n - start + 1);
-        }
-      }
+    const found = findDate(n);
+    if (!found) {
+      throw new Error("Date not found in calendar data");
     }
-    throw new Error("Date not found in calendar data");
+    return new NepaliDate(found.year, found.month, found.day);
   }
 
   /**
@@ -135,7 +120,7 @@ export class NepaliDate {
       throw new Error(`Invalid date: ${input}`);
     }
     return NepaliDate.fromDayNumber(
-      dayNumber(input.getFullYear(), input.getMonth() + 1, input.getDate()),
+      dayNumber(input.getFullYear(), input.getMonth() + 1, input.getDate())
     );
   }
 
@@ -156,8 +141,7 @@ export class NepaliDate {
       NepaliDate.fromADString(adDateString).format("YYYY-MM-DD"),
 
     /** BS "YYYY-MM-DD" -> AD "YYYY-MM-DD" */
-    BStoAD: (bsDateString) =>
-      NepaliDate.fromBSString(bsDateString).toADString(),
+    BStoAD: (bsDateString) => NepaliDate.fromBSString(bsDateString).toADString(),
 
     /** JS Date (or "YYYY-MM-DD") -> BS "YYYY-MM-DD" */
     JStoBS: (jsDate) => NepaliDate.fromGregorian(jsDate).format("YYYY-MM-DD"),

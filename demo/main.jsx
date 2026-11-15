@@ -13,7 +13,7 @@ function App() {
   return (
     <div style={{ padding: 40, fontFamily: "sans-serif" }}>
       <h2>Nepali</h2>
-      <NepaliCalendar language="nepali" onChange={setDate} />
+      <NepaliCalendar language="nepali" onChange={setDate} variant="filled" />
       <h2>English</h2>
       <NepaliCalendar color="#2563eb" language="english" onChange={setDate} />
       <pre>{date && JSON.stringify({ bs: date.bs, ad: date.ad }, null, 2)}</pre>
